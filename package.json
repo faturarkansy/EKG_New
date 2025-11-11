@@ -1,0 +1,40 @@
+{
+  "name": "ekg",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "build": "electron-builder --win nsis",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.example.ekgapp",
+    "productName": "EKG App",
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
+    },
+    "directories": {
+      "buildResources": "assets"
+    }
+  },
+  "author": "Veronika Siregar",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^36.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "mysql2": "^3.14.1",
+    "sqlite3": "^5.1.7",
+    "ws": "^8.18.3"
+  }
+}

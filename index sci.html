@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Pemeriksaan EKG</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/scichart@3.5.774/index.min.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f9ff;
+    }
+
+    .header {
+      background-color: #34495e;
+      color: white;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 6px solid white;
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .logo {
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    .form-button {
+      background-color: #34495e;
+      color: white;
+
+    }
+
+    .status-bar {
+      background-color: #34495e;
+      color: white;
+      padding: 0.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      display: flex;
+      align-items: center;
+      height: 35px;
+    }
+
+    .status.nonaktif {
+      background-color: white;
+      padding: 0.2rem 0.5rem;
+      border-radius: 5px;
+      margin-left: 10px;
+    }
+
+
+
+    .patient-data,
+    .actions {
+      background-color: #ffffff;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .actions button {
+      margin-right: 10px;
+    }
+
+    .patient-section {
+      background-color: #34495e;
+      /* Background sudah diatur di sini */
+      box-shadow: 0px -4px 6px rgba(0, 0, 0, 0.1);
+      margin-top: 5px;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+
+    input[type="date"] {
+      color-scheme: light;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      /* Satu kolom untuk semua grafik */
+      gap: 20px;
+      /* Jarak antar grafik */
+      padding: 20px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      /* Diperlukan untuk penempatan judul absolut */
+      width: 100%;
+      height: 350px;
+      /* Tinggi tetap untuk setiap grafik */
+      border: 1px solid #e0e0e0;
+      /* Border yang lebih halus */
+      box-sizing: border-box;
+      background-color: #ffffff;
+      /* Latar belakang putih untuk setiap grafik */
+      border-radius: 8px;
+      /* Sudut membulat */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      /* Bayangan yang lebih menonjol */
+      overflow: hidden;
+      /* Memastikan konten tidak meluap dari sudut membulat */
+    }
+
+    .chart-title {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #333;
+      z-index: 10;
+      /* Pastikan judul di atas grafik */
+    }
+
+    .scichart-root {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="d-flex align-items-center ">
+      <img src="itera.svg" alt="Logo ITERA" class="logo" />
+      <img src="bm.svg" alt="Logo ITERA" class="logo" />
+      <h5 class="mb-0 ms-2 header-title">Sistem Pemeriksaan Elektrokardiogram</h5>
+    </div>
+    <div>Selamat Datang!</div>
+  </header>
+  </div>
+
+  <section class="patient-section py-3 px-5 d-flex justify-content-between align-items-start">
+    <div class="d-flex">
+      <div class="d-flex flex-column gap-2">
+        <div class="d-flex align-items-center">
+          <label class="mb-0 text-white" style="width: 120px; font-size:small;">Nama Pasien</label>
+          <input type="text" class="form-control bg-dark text-white border-0"
+            style="width: 250px; height: 20px; font-size:small" />
+        </div>
+        <div class="d-flex align-items-center">
+          <label class="mb-0 text-white" style="width: 120px; font-size:small;">Tanggal Lahir</label>
+          <input type="date" class="form-control bg-dark text-white border-0"
+            style="width: 250px; height: 20px; font-size:small" />
+        </div>
+        <div class="d-flex align-items-center">
+          <label class="mb-0 text-white" style="width: 120px; font-size:small;">Rekam Medis</label>
+          <input type="text" class="form-control bg-dark text-white border-0"
+            style="width: 250px; height: 20px; font-size:small" />
+        </div>
+      </div>
+    </div>
+
+
+    <div class="d-flex flex-row gap-2">
+      <button class="btn d-flex align-items-center gap-1 p-1" style="background-color: #ffffff; font-size: 0.75rem;">
+        <i class="bi bi-record-circle fs-5" style="color: #34495e;"></i>
+        <span style="color: #34495e;">Rekam</span>
+      </button>
+      <button class="btn d-flex align-items-center gap-1 p-1" style="background-color: #ffffff; font-size: 0.75rem;">
+        <i class="bi bi-stop-fill fs-5" style="color: #34495e;"></i>
+        <span style="color: #34495e;">Berhenti</span>
+      </button>
+      <button class="btn d-flex align-items-center gap-1 p-1" style="background-color: #ffffff; font-size: 0.75rem;">
+        <i class="bi bi-save fs-5" style="color: #34495e;"></i>
+        <span style="color: #34495e;">Simpan</span>
+      </button>
+      <button class="btn d-flex align-items-center gap-1 p-1" style="background-color: #ffffff; font-size: 0.75rem;"
+        onclick="window.location.href='file.html'">
+        <i class="bi bi-folder2-open fs-5" style="color: #34495e;"></i>
+        <span style="color: #34495e;">Buka File</span>
+      </button>
+    </div>
+
+  </section>
+
+  <div class="chart-grid" id="chart-grid-container">
+    <!-- Chart containers will be generated here by JavaScript -->
+  </div>
+
+  <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Pratinjau Rekaman</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <video id="previewVideo" controls class="w-100"></video>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="videoFileInput" accept="video/webm" style="display: none;" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    // --- Fungsi USB (tetap sama) ---
+    if ('usb' in navigator) {
+      async function getComPort() {
+        try {
+          const devices = await navigator.usb.getDevices();
+          if (devices.length > 0) {
+            const device = devices[0];
+            // document.getElementById('com-port').value = device.productName || device.manufacturerName || 'Unknown Device';
+          } else {
+            // document.getElementById('com-port').value = 'Tidak ada perangkat USB terhubung';
+          }
+        } catch (error) {
+          console.error('Error mengakses perangkat USB:', error);
+          // document.getElementById('com-port').value = 'Gagal mengakses perangkat USB';
+        }
+      }
+      document.addEventListener("DOMContentLoaded", getComPort);
+    } else {
+      console.warn('API USB tidak didukung di browser ini.');
+    }
+
+    // --- Fungsi Rekam Video (tetap sama) ---
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    const rekamBtn = document.querySelector('.bi-record-circle').closest('button');
+    const berhentiBtn = document.querySelector('.bi-stop-fill').closest('button');
+    const bukaFileBtn = document.querySelector('.bi-folder2-open').closest('button');
+    const fileInput = document.getElementById('videoFileInput');
+    const previewVideo = document.getElementById('previewVideo');
+
+    rekamBtn.addEventListener('click', async () => {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      mediaRecorder = new MediaRecorder(stream);
+      recordedChunks = [];
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rekaman-ekg-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      mediaRecorder.start();
+    });
+
+    berhentiBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    });
+
+    bukaFileBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        previewVideo.src = url;
+        const modal = new bootstrap.Modal(document.getElementById('videoModal'));
+        modal.show();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const openFileBtn = document.querySelector(".bi-folder2-open").closest("button");
+      const fileInput = document.getElementById("videoFileInput");
+      const previewVideo = document.getElementById("previewVideo");
+      const videoModal = new bootstrap.Modal(document.getElementById("videoModal"));
+
+      openFileBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", function () {
+        const file = this.files[0];
+        if (file) {
+          const videoURL = URL.createObjectURL(file);
+          previewVideo.src = videoURL;
+          previewVideo.load();
+          videoModal.show();
+        }
+      });
+    });
+
+    const videoFileInput = document.getElementById('videoFileInput');
+    const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+
+    document.querySelector('button .bi-folder2-open').closest('button').addEventListener('click', () => {
+      videoFileInput.click();
+    });
+
+    videoFileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file && file.type.startsWith('video/')) {
+        const videoURL = URL.createObjectURL(file);
+        previewVideo.src = videoURL;
+        videoModal.show();
+      } else {
+        alert('Harap pilih file video yang valid.');
+      }
+    });
+
+    const modalEl = document.getElementById('videoModal');
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      previewVideo.pause();
+      previewVideo.src = '';
+      document.body.classList.remove('modal-open');
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(backdrop => backdrop.remove());
+      // location.reload(); // Tidak perlu reload penuh jika hanya modal yang ditutup
+    });
+  </script>
+
+  <!-- script sci-chart -->
+  <script>
+    // ✅ Fungsi parse CSV dipindahkan ke luar agar bisa dipakai global
+    function parseCsvData(csvString) {
+      const lines = csvString.trim().split('\n'); // ✅ gunakan \n, bukan \\n
+      if (lines.length === 0) return {};
+
+      const headers = lines[0].split(',');
+      const parsedData = {};
+
+      headers.forEach(header => {
+        parsedData[header.trim()] = [];
+      });
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',');
+        headers.forEach((header, index) => {
+          if (values[index] !== undefined) {
+            parsedData[header.trim()].push(parseFloat(values[index]));
+          }
+        });
+      }
+
+      return parsedData;
+    }
+
+    // ✅ Fungsi utama untuk membuat grafik, menerima data dari preload
+    async function initSciChart(allEcgData) {
+      const {
+        SciChartSurface,
+        NumericAxis,
+        FastLineRenderableSeries,
+        XyDataSeries,
+        ZoomPanModifier,
+        ZoomExtentsModifier,
+        MouseWheelZoomModifier,
+        NumberRange
+      } = SciChart;
+
+      const NUMBER_OF_CHARTS = 12;
+      const chartGridContainer = document.getElementById("chart-grid-container");
+
+      const colors = [
+        "#4285F4", "#EA4335", "#34A853", "#FBBC05", "#8E24AA", "#00ACC1",
+        "#FF7043", "#7CB342", "#FDD835", "#5C6BC0", "#D81B60", "#00897B"
+      ];
+
+      const chartTitles = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
+
+      // ✅ Gunakan nama header yang sesuai dengan CSV kamu (pastikan benar)
+      const csvHeaders = [
+        "Lead_1", "Lead_2", "Lead_3", "Lead_4", "Lead_5", "Lead_6",
+        "Lead_7", "Lead_8", "Lead_9", "Lead_10", "Lead_11", "Lead_12"
+      ];
+
+      for (let i = 1; i <= NUMBER_OF_CHARTS; i++) {
+        const chartWrapper = document.createElement("div");
+        chartWrapper.className = "chart-wrapper";
+        chartGridContainer.appendChild(chartWrapper);
+
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "chart-title";
+        titleDiv.textContent = chartTitles[i - 1];
+        titleDiv.style.color = "#ffffff";
+        titleDiv.style.fontSize = "1.5em";
+        titleDiv.style.fontWeight = "bold";
+        chartWrapper.appendChild(titleDiv);
+
+        const scichartRootDiv = document.createElement("div");
+        scichartRootDiv.id = `scichart-root-${i}`;
+        scichartRootDiv.className = "scichart-root";
+        chartWrapper.appendChild(scichartRootDiv);
+
+        const { sciChartSurface, wasmContext } = await SciChartSurface.create(scichartRootDiv.id);
+
+        sciChartSurface.chartBackground = "#FFFFFF";
+        sciChartSurface.plotAreaBackground = "#FFFFFF";
+
+        sciChartSurface.xAxes.add(new NumericAxis(wasmContext, {
+          axisTitle: "",
+          labelPrecision: 0,
+          drawMajorGridLines: true,
+          drawMinorGridLines: true,
+          majorGridLineStyle: { stroke: "#e0e0e0", strokeThickness: 1 },
+          minorGridLineStyle: { stroke: "#f0f0f0", strokeThickness: 0.5 }
+        }));
+
+        sciChartSurface.yAxes.add(new NumericAxis(wasmContext, {
+          axisTitle: "",
+          visibleRange: new NumberRange(-1000, 1000),
+          growBy: new NumberRange(0.1, 0.1),
+          drawMajorGridLines: true,
+          drawMinorGridLines: true,
+          majorGridLineStyle: { stroke: "#e0e0e0", strokeThickness: 1 },
+          minorGridLineStyle: { stroke: "#f0f0f0", strokeThickness: 0.5 }
+        }));
+
+        const currentLeadHeader = csvHeaders[i - 1];
+        const yValuesFull = allEcgData[currentLeadHeader] || [];
+        const totalPoints = yValuesFull.length;
+        const xValuesFull = Array.from({ length: totalPoints }, (_, j) => j);
+
+        const dataSeries = new XyDataSeries(wasmContext);
+        const chartColor = colors[(i - 1) % colors.length];
+
+        const lineSeries = new FastLineRenderableSeries(wasmContext, {
+          stroke: chartColor,
+          strokeThickness: 3,
+          dataSeries
+        });
+
+        sciChartSurface.renderableSeries.add(lineSeries);
+
+        sciChartSurface.chartModifiers.add(
+          new ZoomPanModifier(),
+          new MouseWheelZoomModifier(),
+          new ZoomExtentsModifier()
+        );
+
+        // Animasi ECG berjalan
+        let dataIndex = 0;
+        const visibleRangeWidth = 500;
+        const animationInterval = 10;
+
+        const intervalId = setInterval(() => {
+          if (dataIndex < totalPoints) {
+            dataSeries.append(xValuesFull[dataIndex], yValuesFull[dataIndex]);
+
+            const xCurrent = xValuesFull[dataIndex];
+            const xStart = Math.max(0, xCurrent - visibleRangeWidth / 2);
+            const xEnd = xStart + visibleRangeWidth;
+            sciChartSurface.xAxes.get(0).visibleRange = new NumberRange(xStart, xEnd);
+
+            dataIndex++;
+          } else {
+            clearInterval(intervalId);
+          }
+        }, animationInterval);
+      }
+    }
+
+    // ✅ Panggil preload untuk minta data dan tunggu responsnya
+    window.electronAPI.requestEcgData();
+
+    window.electronAPI.onEcgDataResponse((csvString) => {
+      const parsedData = parseCsvData(csvString);
+      console.log("CSV Data Loaded:", parsedData);
+      initSciChart(parsedData); // ✅ grafik hanya dipanggil saat data siap
+    });
+  </script>
+
+
+</body>
+
+</html>

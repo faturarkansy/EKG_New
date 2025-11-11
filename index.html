@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Pemeriksaan EKG (Realtime)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/scichart@3.5.774/index.min.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f9ff;
+    }
+
+    .header {
+      background-color: #34495e;
+      color: white;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 6px solid white;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .chart-title {
+      position: absolute;
+      top: 10px;
+      left: 15px;
+      font-weight: bold;
+      color: #333;
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <h5 class="mb-0">Sistem Pemeriksaan EKG Realtime</h5>
+    <div id="ws-status" class="badge bg-secondary">Menghubungkan...</div>
+  </header>
+
+  <div class="chart-grid" id="chart-grid-container"></div>
+
+  <script>
+    const WS_URL = "ws://localhost:8765"; // pastikan sama dengan server.py
+    let socket;
+
+    const NUMBER_OF_CHARTS = 12;
+    const chartTitles = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
+    const colors = ["#4285F4", "#EA4335", "#34A853", "#FBBC05", "#8E24AA", "#00ACC1", "#FF7043", "#7CB342", "#FDD835", "#5C6BC0", "#D81B60", "#00897B"];
+
+    const charts = []; // simpan semua objek chart
+    const maxPoints = 1000;
+
+    async function initCharts() {
+      const { SciChartSurface, NumericAxis, FastLineRenderableSeries, XyDataSeries, NumberRange } = SciChart;
+      const container = document.getElementById("chart-grid-container");
+
+      for (let i = 0; i < NUMBER_OF_CHARTS; i++) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "chart-wrapper";
+        const title = document.createElement("div");
+        title.className = "chart-title";
+        title.textContent = chartTitles[i];
+        wrapper.appendChild(title);
+
+        const div = document.createElement("div");
+        div.id = `chart-${i}`;
+        div.style.width = "100%";
+        div.style.height = "100%";
+        wrapper.appendChild(div);
+        container.appendChild(wrapper);
+
+        const { sciChartSurface, wasmContext } = await SciChartSurface.create(div.id);
+        sciChartSurface.xAxes.add(new NumericAxis(wasmContext, { visibleRange: new NumberRange(0, maxPoints), drawLabels: false }));
+        sciChartSurface.yAxes.add(new NumericAxis(wasmContext, { visibleRange: new NumberRange(-1500, 1500), drawLabels: false }));
+
+        const dataSeries = new XyDataSeries(wasmContext);
+        const lineSeries = new FastLineRenderableSeries(wasmContext, { stroke: colors[i], strokeThickness: 2, dataSeries });
+        sciChartSurface.renderableSeries.add(lineSeries);
+
+        charts.push({ sciChartSurface, dataSeries });
+      }
+    }
+
+    // 🔌 Hubungkan WebSocket
+    function connectWebSocket() {
+      socket = new WebSocket(WS_URL);
+
+      socket.onopen = () => {
+        console.log("Terhubung ke server WebSocket!");
+        document.getElementById("ws-status").className = "badge bg-success";
+        document.getElementById("ws-status").textContent = "Terhubung";
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          updateCharts(data);
+        } catch (err) {
+          console.error("Data bukan JSON valid:", event.data);
+        }
+      };
+
+      socket.onclose = () => {
+        console.warn("Koneksi WebSocket tertutup, mencoba lagi...");
+        document.getElementById("ws-status").className = "badge bg-danger";
+        document.getElementById("ws-status").textContent = "Terputus (reconnect...)";
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      socket.onerror = (err) => console.error("WebSocket error:", err);
+    }
+
+    // 🧠 Update semua chart berdasarkan data JSON dari ESP32
+    function updateCharts(ecgData) {
+      chartTitles.forEach((title, i) => {
+        const key = `Lead_${i + 1}`;
+        if (ecgData[key] !== undefined && charts[i]) {
+          const chart = charts[i];
+          const x = chart.dataSeries.count();
+          chart.dataSeries.append(x, ecgData[key]);
+          if (chart.dataSeries.count() > maxPoints) {
+            chart.dataSeries.removeRange(0, chart.dataSeries.count() - maxPoints);
+          }
+        }
+      });
+    }
+
+    // 🚀 Jalankan
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initCharts();
+      connectWebSocket();
+    });
+  </script>
+</body>
+
+</html>
