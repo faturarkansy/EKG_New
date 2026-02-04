@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Detail Rekaman EKG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f9;
+            padding: 15px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Kertas EKG Utama */
+        .ekg-container {
+            background-color: #fff;
+            background-image:
+                /* Grid Besar (5mm) */
+                linear-gradient(rgba(255, 0, 0, 0.25) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.25) 1px, transparent 1px),
+                /* Grid Kecil (1mm) */
+                linear-gradient(rgba(255, 0, 0, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.08) 1px, transparent 1px);
+            background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+            padding: 15px;
+            height: 100%;
+            border-bottom: 1.5px solid rgba(255, 0, 0, 0.25);
+            border-right: 1.5px solid rgba(255, 0, 0, 0.25);
+            border-top: 1px solid rgba(255, 0, 0, 0.25);
+            border-left: 1px solid rgba(255, 0, 0, 0.25);
+        }
+
+        .ekg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(6, auto);
+            gap: 15px;
+            /* Jarak antar lead agar label tidak menempel */
+            background: transparent;
+            /* Transparan agar grid container terlihat */
+        }
+
+        .ekg-chart {
+            /* Hilangkan background dan border agar menyatu dengan kertas */
+            background: transparent !important;
+            border: none !important;
+            position: relative;
+            height: 100px;
+        }
+
+        /* Kontainer Catatan (Tetap putih bersih) */
+        .note-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            height: 100%;
+            border: 1px solid #ddd;
+        }
+
+        .lead-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 11px;
+            font-weight: 800;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 0 4px;
+            color: #000;
+        }
+
+        .apexcharts-canvas {
+            background: transparent !important;
+        }
+
+        #pdf-template {
+            margin: 0;
+        }
+
+        #pdf-template h4 {
+            margin-top: 5px;
+        }
+
+        #pdf-ekg {
+            margin-left: 16px;
+            width: 700px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid h-100">
+        <div class="row g-3 h-100">
+
+            <div class="col-md-8">
+                <div class="ekg-container h-100" style="overflow-y: auto;">
+                    <div id="ekg-grid" class="ekg-grid"></div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="note-container d-flex flex-column">
+                    <div class="mb-3 p-2 border-bottom">
+                        <small class="text-muted d-block">Nama Pasien:</small>
+                        <h5 id="patient-name" class="fw-bold">-</h5>
+                    </div>
+                    <label class="fw-semibold mb-2">Catatan :</label>
+                    <textarea id="note-textarea" class="form-control mb-3"
+                        placeholder="Ketik disini untuk memberi catatan diagnosis"></textarea>
+
+                    <button class="btn btn-success mb-3" id="btn-save-note">Simpan Catatan</button>
+
+
+                    <div class="mt-auto d-flex flex-column gap-2">
+                        <button class="btn btn-outline-dark" id="btn-save-pdf">Simpan PDF</button>
+                        <button class="btn btn-outline-dark" id="btn-save-csv">Simpan CSV</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /***********************
+         * SETUP LEAD & GRID
+         ***********************/
+        const dataLeadOrder = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
+
+        // urutan tampilan grid
+        const displayLeadOrder = [
+            "I", "V1",
+            "II", "V2",
+            "III", "V3",
+            "aVR", "V4",
+            "aVL", "V5",
+            "aVF", "V6"
+        ];
+        const grid = document.getElementById("ekg-grid");
+
+        displayLeadOrder.forEach(lead => {
+            const div = document.createElement("div");
+            div.className = "ekg-chart";
+            div.id = `chart-${lead}`;
+            div.innerHTML = `<div class="lead-label">${lead}</div>`;
+            grid.appendChild(div);
+        });
+
+        // Variabel global untuk menyimpan data rekaman guna keperluan export CSV
+        let currentRecordData = null;
+
+        /***********************
+         * FUNGSI CREATE CHART (APEXCHARTS)
+         ***********************/
+        function createChart(divId, xData, yData) {
+            const options = {
+                series: [{ name: 'EKG', data: yData }],
+                chart: {
+                    type: 'line',
+                    height: 100,
+                    animations: { enabled: false },
+                    toolbar: { show: false },
+                    sparkline: { enabled: true },
+                    background: 'transparent'
+                },
+                stroke: { curve: 'straight', width: 1.5, colors: ['#000000'] },
+                yaxis: { min: -1.5, max: 1.5 },
+                grid: { show: false }
+            };
+            const chart = new ApexCharts(document.querySelector(`#${divId}`), options);
+            chart.render();
+        }
+
+        /***********************
+         * PARSE DATA SQLITE
+         ***********************/
+        function parseRekaman(rawText, limit = 1000) {
+            if (!rawText) return [];
+            const lines = rawText.split('\n');
+            const leads = Array.from({ length: 12 }, () => ({ x: [], y: [] }));
+            let packetCount = 0;
+
+            for (const line of lines) {
+                // Jika limit null, maka parse semua data (digunakan untuk CSV)
+                if (limit && packetCount >= limit) break;
+
+                const tsMatch = line.match(/timestamp\s*:\s*([\d.]+)/);
+                const valuesMatch = line.match(/array\(\[([^\]]+)\]\)/);
+
+                if (!tsMatch || !valuesMatch) continue;
+
+                const timestamp = parseFloat(tsMatch[1]);
+                const values = valuesMatch[1].split(',').map(v => parseFloat(v.trim()));
+
+                for (let i = 0; i < 12; i++) {
+                    leads[i].x.push(timestamp);
+                    leads[i].y.push(values[i]);
+                }
+                packetCount++;
+            }
+            return leads;
+        }
+
+        /***********************
+         * FUNGSI DOWNLOAD CSV
+         ***********************/
+        function downloadCSV() {
+            if (!currentRecordData || !currentRecordData.rekaman_grafik) {
+                alert("Data tidak ditemukan!");
+                return;
+            }
+
+            // Parse semua data tanpa limit 1000 untuk CSV yang lengkap
+            const fullLeadsData = parseRekaman(currentRecordData.rekaman_grafik, null);
+
+            if (fullLeadsData.length === 0 || fullLeadsData[0].x.length === 0) {
+                alert("Gagal memproses data grafik.");
+                return;
+            }
+
+            // 1. Buat Header CSV
+            let csvContent = "timestamp,lead1,lead2,lead3,aVR,aVL,aVF,V1,V2,V3,V4,V5,V6\n";
+
+            // 2. Isi Baris Data
+            const rowCount = fullLeadsData[0].x.length;
+            for (let i = 0; i < rowCount; i++) {
+                let row = [];
+                row.push(fullLeadsData[0].x[i]); // Timestamp
+                for (let j = 0; j < 12; j++) {
+                    row.push(fullLeadsData[j].y[i]); // Nilai setiap Lead
+                }
+                csvContent += row.join(",") + "\n";
+            }
+
+            // 3. Proses Download File
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            const timestampFile = new Date().toISOString().replace(/[:.]/g, '-');
+            link.setAttribute("href", url);
+            link.setAttribute("download", `EKG_${currentRecordData.nama}_${timestampFile}.csv`);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Pasang event listener ke tombol CSV
+        document.getElementById('btn-save-csv').addEventListener('click', downloadCSV);
+
+        /***********************
+         * FETCH & RENDER
+         ***********************/
+        const noteTextarea = document.getElementById("note-textarea");
+        const btnSaveNote = document.getElementById("btn-save-note");
+
+        window.electronAPI.onPassId(async (id) => {
+            try {
+                const record = await window.electronAPI.getRecordDetail(id);
+                if (record) {
+                    // Simpan data record ke variabel global untuk CSV
+                    currentRecordData = record;
+
+                    document.getElementById('patient-name').innerText = record.nama;
+
+                    if (record.note && record.note.trim() !== "") {
+                        // Jika sudah ada catatan
+                        noteTextarea.value = record.note;
+                        noteTextarea.setAttribute("readonly", true);
+                        btnSaveNote.style.display = "none";
+                    } else {
+                        // Jika belum ada catatan
+                        noteTextarea.value = "";
+                        noteTextarea.removeAttribute("readonly");
+                        btnSaveNote.style.display = "block";
+                    }
+
+                    const leadsData = parseRekaman(record.rekaman_grafik, 1000); // Limit 1000 untuk tampilan agar ringan
+
+                    leadsData.forEach((lead, index) => {
+                        const leadName = dataLeadOrder[index];
+                        if (lead.x.length > 0) {
+                            createChart(`chart-${leadName}`, lead.x, lead.y);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Gagal mengambil detail rekaman:", err);
+            }
+        });
+
+        btnSaveNote.addEventListener("click", async () => {
+            const noteText = noteTextarea.value.trim();
+
+            if (!noteText) {
+                alert("Catatan tidak boleh kosong!");
+                return;
+            }
+
+            if (!currentRecordData) {
+                alert("Data record tidak ditemukan.");
+                return;
+            }
+
+            const result = await window.electronAPI.saveNote({
+                id: currentRecordData.id,
+                note: noteText
+            });
+
+            if (result.success) {
+                alert("Catatan berhasil disimpan.");
+
+                noteTextarea.setAttribute("readonly", true);
+                btnSaveNote.style.display = "none";
+            } else {
+                alert("Gagal menyimpan catatan.");
+            }
+        });
+
+
+        document.getElementById("btn-save-pdf").addEventListener("click", async () => {
+
+            if (!currentRecordData) {
+                alert("Data belum tersedia");
+                return;
+            }
+
+            // isi data header
+            document.getElementById("pdf-nama").innerText = currentRecordData.nama;
+            document.getElementById("pdf-jk").innerText = currentRecordData.jenis_kelamin;
+            document.getElementById("pdf-tenaga").innerText = currentRecordData.tenaga_medis;
+            document.getElementById("pdf-tgl").innerText = currentRecordData.tanggal_lahir;
+            document.getElementById("pdf-umur").innerText = currentRecordData.umur + " Tahun";
+            document.getElementById("pdf-catatan").innerText = currentRecordData.note || "-";
+            document.getElementById("pdf-waktu").innerText = currentRecordData.waktu;
+
+            // clone grafik EKG ke template PDF
+            const pdfGrid = document.getElementById("pdf-ekg-grid");
+            pdfGrid.innerHTML = "";
+
+            displayLeadOrder.forEach(lead => {
+                const chartDiv = document.getElementById(`chart-${lead}`).cloneNode(true);
+                chartDiv.style.height = "100px";
+                pdfGrid.appendChild(chartDiv);
+            });
+
+            document.getElementById("pdf-template").style.display = "block";
+
+            const element = document.getElementById("pdf-template");
+
+            const opt = {
+                margin: [0.2, 0.2, 0.2, 0.2],
+                filename: `EKG_${currentRecordData.nama}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, scrollY: 0 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            await html2pdf().set(opt).from(element).save();
+
+            document.getElementById("pdf-template").style.display = "none";
+        });
+
+    </script>
+</body>
+
+<div id="pdf-template" style="width: 794px; padding: 5px 5px 5px 5px; margin: 0; display:none; font-family:Arial;">
+    <h4 class="text-center fw-bold mb-3">Sistem Pemeriksaan Elektrokardiogram</h4>
+
+    <table style="width:100%; font-size:12px; margin-bottom:10px; margin-left: 16px;">
+        <tr>
+            <td><b>Nama</b>: <span id="pdf-nama"></span></td>
+            <td><b>Jenis Kelamin</b>: <span id="pdf-jk"></span></td>
+            <td><b>Tenaga Medis</b>: <span id="pdf-tenaga"></span></td>
+        </tr>
+        <tr>
+            <td><b>Tanggal Lahir</b>: <span id="pdf-tgl"></span></td>
+            <td><b>Umur</b>: <span id="pdf-umur"></span></td>
+            <td></td>
+        </tr>
+    </table>
+
+    <div id="pdf-ekg" class="ekg-container">
+        <div id="pdf-ekg-grid" class="ekg-grid"></div>
+    </div>
+
+    <table style="width:100%; font-size:12px; margin-top:10px; margin-left: 16px">
+        <tr>
+            <td style="width:18%;"><b>Catatan Pemeriksaan</b></td>
+            <td id="pdf-catatan" style="padding:6px 0;"></td>
+        </tr>
+        <tr>
+            <td><b>Waktu Pemeriksaan</b></td>
+            <td id="pdf-waktu"></td>
+        </tr>
+    </table>
+</div>
+
+
+</html>

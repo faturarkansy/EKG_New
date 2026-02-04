@@ -10,10 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f2f9ff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background-color: #f8f9fa;
     }
 
+    /* Styling Header tetap sama */
     .header {
       background-color: #34495e;
       color: white;
@@ -31,7 +32,8 @@
 
     .subheader-title {
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 500;
+      color: white;
     }
 
     .logo {
@@ -39,51 +41,108 @@
       margin-right: 10px;
     }
 
-    .status-bar {
-      background-color: #34495e;
-      color: white;
-      padding: 0.5rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 35px;
-    }
-
-    main {
-      padding: 20px;
-    }
-
-    .patient-table th,
-    .patient-table td {
-      vertical-align: middle;
-    }
-
     .patient-section {
-      background-color: #f2f9ff;
+      background-color: #34495e;
       box-shadow: 0px -4px 6px rgba(0, 0, 0, 0.1);
       margin-top: 5px;
       padding: 10px 20px;
     }
 
-    .btn-back {
-      display: flex;
+    /* STYLING TABEL MODERN (SESUAI GAMBAR) */
+    main {
+      padding: 30px;
+    }
+
+    .table-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    /* STYLING TABEL DENGAN BORDER */
+    .patient-table {
+      border-collapse: collapse;
+      /* Membuat garis menyatu */
+      border: 1px solid #dee2e6;
+      /* Garis luar tabel */
+      width: 100%;
+      margin-bottom: 1rem;
+      background-color: transparent;
+    }
+
+    .patient-table thead th {
+      background-color: #f8f9fa !important;
+      color: black;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      padding: 15px;
+      border: 1px solid #dee2e6;
+      /* Garis pada header */
+      text-align: center;
+    }
+
+    .patient-table tbody tr {
+      background-color: #ffffff;
+      transition: all 0.2s;
+    }
+
+    .patient-table tbody tr:hover {
+      background-color: #f2f7ff;
+    }
+
+    .patient-table td {
+      padding: 12px 15px;
+      color: #444;
+      font-size: 14px;
+      border: 1px solid #dee2e6;
+      /* Garis pada setiap sel */
+      vertical-align: middle;
+    }
+
+    /* Styling Tombol Aksi */
+    .btn-action {
+      padding: 5px 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-flex;
       align-items: center;
       gap: 5px;
-      background-color: #34495e;
-      color: white;
+      transition: 0.2s;
+      border: 1px solid #dee2e6;
     }
 
-    .btn-back img {
-      width: 16px;
-      height: 16px;
+    .btn-unduh {
+      background-color: #fff;
+      color: #0d6efd;
     }
 
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(1);
+    .btn-unduh:hover {
+      background-color: #0d6efd;
+      color: #fff;
     }
 
-    input[type="date"] {
-      color-scheme: light;
+    .btn-hapus {
+      background-color: #fff;
+      color: #dc3545;
+      margin-left: 5px;
+    }
+
+    .btn-hapus:hover {
+      background-color: #dc3545;
+      color: #fff;
+    }
+
+    .btn-back {
+      background-color: #ffffff;
+      color: #34495e;
+      border: none;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -95,64 +154,107 @@
       <img src="bm.svg" alt="Logo BMKG" class="logo" />
       <h5 class="mb-0 ms-2 header-title">Sistem Pemeriksaan Elektrokardiogram</h5>
     </div>
-    <div>Selamat Datang! 👤</div>
+    <div>Selamat Datang!</div>
   </header>
 
-  <section class="status-bar">
+  <section class="patient-section py-3 px-5 d-flex justify-content-between align-items-start">
     <div>
       <div class="subheader-title">File Rekaman Elektrokardiogram</div>
     </div>
-  </section>
-
-  <!-- Modal untuk preview video -->
-  <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Pratinjau Rekaman</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <video id="previewVideo" controls class="w-100"></video>
-        </div>
+    <div class="d-flex flex-column gap-2">
+      <!-- BARIS PERTAMA: TOMBOL -->
+      <div class="d-flex flex-row gap-2">
+        <button class="btn d-flex align-items-center gap-1 p-1" style="background-color: #ffffff; font-size: 0.75rem;"
+          onclick="window.location.href='index.html'">
+          <i class="bi bi-chevron-double-left fs-5" style="color: #34495e;"></i>
+          <span style="color: #34495e;">Kembali</span>
+        </button>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- TABEL -->
   <main>
     <div class="table-responsive">
-      <table class="table table-striped patient-table">
+      <table class="table table-striped table-bordered patient-table">
         <thead class="table-dark">
           <tr>
             <th>No</th>
             <th>Nama Pasien</th>
             <th>Tanggal Lahir</th>
-            <th>Rekam Medis</th>
-            <th>File</th>
+            <th>Jenis Kelamin</th>
+            <th>Umur</th>
+            <th>Tenaga Medis</th>
+            <th>Waktu Pemeriksaan</th>
+            <th>Hasil Rekaman</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Contoh data -->
-          <tr>
-            <td>1</td>
-            <td>Ahmad Fauzi</td>
-            <td>1990-05-10</td>
-            <td>RM123456</td>
-            <td><a href="Ahmad_Fauzi_19900510_RM123456.webm" target="_blank">Lihat File</a></td>
-          </tr>
+        <tbody id="recordTableBody">
         </tbody>
       </table>
     </div>
   </main>
 
-  <!-- BAGIAN BAWAH -->
-  <section class="patient-section d-flex justify-content-between align-items-center">
-    <button class="btn btn-back" onclick="window.location.href='index.html'">
-      <img src="Back.svg" alt="Kembali" />
-      Kembali
-    </button>
-  </section>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const tableBody = document.getElementById('recordTableBody');
+
+      try {
+        // 1. Ambil data dari database melalui IPC
+        const records = await window.electronAPI.getRecords();
+
+        // 2. Bersihkan isi tabel
+        tableBody.innerHTML = '';
+
+        // 3. Loop data dan masukkan ke tabel
+        records.forEach((row, index) => {
+          const tr = document.createElement('tr');
+
+          const waktuFormatted = new Date(row.waktu).toLocaleString("id-ID");
+
+          tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${row.nama}</td>
+          <td>${row.tanggal_lahir}</td>
+          <td>${row.jenis_kelamin}</td>
+          <td>${row.umur} Tahun</td>
+          <td>${row.tenaga_medis}</td>
+          <td>${waktuFormatted}</td>
+          <td class="text-center">
+              <button class="btn-action btn-unduh" onclick="handleView(${row.id})">
+                <i class="bi bi-eye"></i> Lihat
+              </button>
+              <button class="btn-action btn-hapus" onclick="handleDelete(${row.id})">
+                <i class="bi bi-trash"></i> Hapus
+              </button>
+            </td>
+        `;
+          tableBody.appendChild(tr);
+        });
+
+        if (records.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data rekaman.</td></tr>';
+        }
+      } catch (err) {
+        console.error("Gagal memuat data:", err);
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Gagal memuat data dari database.</td></tr>';
+      }
+    });
+
+    function handleView(id) {
+      window.electronAPI.openEkgModal(id);
+    }
+
+    async function handleDelete(id) {
+      if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+        const result = await window.electronAPI.deleteRecord(id);
+        if (result.success) {
+          // Merefresh halaman untuk melihat perubahan
+          window.location.reload();
+        }
+      }
+    }
+  </script>
 
   <input type="file" id="videoFileInput" accept="video/webm" style="display: none;" />
 </body>
